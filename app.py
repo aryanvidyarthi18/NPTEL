@@ -19,61 +19,7 @@ MACRO_FOCUS_MAP = {
 	"fat": {"Protein": 1, "Carbs": 1, "Fat": 2, "Calories": 1},
 }
 
-# Storage file for saved meal plans
-SAVED_PLANS_FILE = "saved_meal_plans.json"
-
-def load_saved_plans():
-	"""Load saved meal plans from file"""
-	try:
-		if os.path.exists(SAVED_PLANS_FILE):
-			with open(SAVED_PLANS_FILE, 'r') as f:
-				return json.load(f)
-		return {}
-	except Exception as e:
-		print(f"Error loading saved plans: {e}")
-		return {}
-
-def save_meal_plan(plan_date, plan_data, user_inputs, meal_split, macro_focus):
-	"""Save a meal plan for a specific date"""
-	try:
-		saved_plans = load_saved_plans()
-		
-		plan_entry = {
-			"date": plan_date,
-			"plan": plan_data,
-			"user_inputs": user_inputs,
-			"meal_split": meal_split,
-			"macro_focus": macro_focus,
-			"saved_at": datetime.now().isoformat()
-		}
-		
-		saved_plans[plan_date] = plan_entry
-		
-		with open(SAVED_PLANS_FILE, 'w') as f:
-			json.dump(saved_plans, f, indent=2)
-		
-		return True
-	except Exception as e:
-		print(f"Error saving plan: {e}")
-		return False
-
-def get_saved_plan(plan_date):
-	"""Get a saved meal plan for a specific date"""
-	try:
-		saved_plans = load_saved_plans()
-		return saved_plans.get(plan_date)
-	except Exception as e:
-		print(f"Error loading plan: {e}")
-		return None
-
-def get_all_saved_dates():
-	"""Get all dates with saved meal plans"""
-	try:
-		saved_plans = load_saved_plans()
-		return sorted(saved_plans.keys(), reverse=True)  # Most recent first
-	except Exception as e:
-		print(f"Error loading dates: {e}")
-		return []
+# Saved plans feature removed for simplicity
 
 
 
@@ -890,24 +836,7 @@ def generate_weekly_plans(user_inputs, meal_split, macro_priority, num_days=7):
 @app.route("/", methods=["GET", "POST"])
 def index():
 	if request.method == "GET":
-		# Check if loading a saved plan
-		load_date = request.args.get('load_date')
-		if load_date:
-			saved_plan = get_saved_plan(load_date)
-			if saved_plan:
-				return render_template("mealplan.html",
-									plan=saved_plan["plan"],
-									targets=get_targets(saved_plan["user_inputs"]),
-									user_inputs=saved_plan["user_inputs"],
-									plan_index=0,
-									total_plans=1,
-									breakfast_pct=saved_plan["meal_split"]["breakfast"],
-									lunch_pct=saved_plan["meal_split"]["lunch"],
-									dinner_pct=saved_plan["meal_split"]["dinner"],
-									macro_focus=saved_plan["macro_focus"],
-									plan_type="single",
-									current_date=load_date,
-									error_message=None)
+		# Load saved plans feature removed
 		
 		return render_template("mealplan.html",
 							plan=None,
@@ -1137,65 +1066,7 @@ def compare_algorithms_route():
 							current_date=datetime.now().strftime("%Y-%m-%d"),
 							error_message=error_message)
 
-@app.route("/save_plan", methods=["POST"])
-def save_plan():
-	"""Save a meal plan for a specific date"""
-	try:
-		data = request.get_json()
-		plan_date = data.get('date')
-		plan_data = data.get('plan')
-		user_inputs = data.get('user_inputs')
-		meal_split = data.get('meal_split')
-		macro_focus = data.get('macro_focus')
-		
-		if not all([plan_date, plan_data, user_inputs, meal_split, macro_focus]):
-			return jsonify({"success": False, "message": "Missing required data"})
-		
-		success = save_meal_plan(plan_date, plan_data, user_inputs, meal_split, macro_focus)
-		
-		if success:
-			return jsonify({"success": True, "message": f"Meal plan saved for {plan_date}"})
-		else:
-			return jsonify({"success": False, "message": "Failed to save meal plan"})
-			
-	except Exception as e:
-		return jsonify({"success": False, "message": f"Error: {str(e)}"})
-
-@app.route("/load_plan/<plan_date>")
-def load_plan(plan_date):
-	"""Load a saved meal plan for a specific date"""
-	try:
-		saved_plan = get_saved_plan(plan_date)
-		
-		if saved_plan:
-			return jsonify({
-				"success": True,
-				"plan": saved_plan["plan"],
-				"user_inputs": saved_plan["user_inputs"],
-				"meal_split": saved_plan["meal_split"],
-				"macro_focus": saved_plan["macro_focus"],
-				"saved_at": saved_plan["saved_at"]
-			})
-		else:
-			return jsonify({"success": False, "message": "No plan found for this date"})
-			
-	except Exception as e:
-		return jsonify({"success": False, "message": f"Error: {str(e)}"})
-
-@app.route("/saved_dates")
-def get_saved_dates():
-	"""Get all dates with saved meal plans"""
-	try:
-		dates = get_all_saved_dates()
-		return jsonify({"success": True, "dates": dates})
-	except Exception as e:
-		return jsonify({"success": False, "message": f"Error: {str(e)}"})
-
-@app.route("/saved_plans")
-def saved_plans_page():
-	"""Page to view all saved meal plans"""
-	saved_dates = get_all_saved_dates()
-	return render_template("saved_plans.html", saved_dates=saved_dates)
+# Saved plans routes removed for simplicity
 
 @app.route("/genetic_visualization")
 def genetic_visualization():
