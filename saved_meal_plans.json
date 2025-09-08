@@ -1,0 +1,70 @@
+{
+  "2025-09-06": {
+    "date": "2025-09-06",
+    "plan": {
+      "meals": {
+        "breakfast": {
+          "bucket_id": "breakfast_11",
+          "calorie_match": 0.8376887340301976,
+          "label": "2.5 piece Dosa + 1.2 cup Sambar",
+          "macros": {
+            "Calories": 500.37499999999994,
+            "Carbs": 89.5125,
+            "Fat": 9.725000000000001,
+            "Protein": 14.112499999999999
+          },
+          "norm_id": "Dosa|Sambar"
+        },
+        "dinner": {
+          "bucket_id": "dinner_11",
+          "calorie_match": 0.919694707151153,
+          "label": "2.0 piece Dosa + 2.0 cup Vegetable Stew + 2.0 tbsp Coconut Chutney",
+          "macros": {
+            "Calories": 554.3,
+            "Carbs": 89.10000000000001,
+            "Fat": 15.579999999999998,
+            "Protein": 14.86
+          },
+          "norm_id": "Dosa|Vegetable Stew|Coconut Chutney"
+        },
+        "lunch": {
+          "bucket_id": "lunch_7",
+          "calorie_match": 0.9681837979094077,
+          "label": "1.5 cup Brown Rice + 1.5 cup Tofu Curry + 1.5 cup Salad",
+          "macros": {
+            "Calories": 666.885,
+            "Carbs": 98.505,
+            "Fat": 21.825000000000003,
+            "Protein": 26.685000000000002
+          },
+          "norm_id": "Brown Rice|Tofu Curry|Salad"
+        }
+      },
+      "total_macros": {
+        "Calories": 1721.56,
+        "Carbs": 277.1175,
+        "Fat": 47.13,
+        "Protein": 55.6575
+      }
+    },
+    "user_inputs": {
+      "activity": "sedentary",
+      "age": 43,
+      "daily_calories": null,
+      "gender": "female",
+      "height": 160,
+      "lactating": "",
+      "preference": "veg",
+      "pregnancy": "",
+      "region": "both",
+      "weight": 70
+    },
+    "meal_split": {
+      "breakfast": 25,
+      "lunch": 40,
+      "dinner": 35
+    },
+    "macro_focus": "protein",
+    "saved_at": "2025-09-06T08:14:45.798253"
+  }
+}
