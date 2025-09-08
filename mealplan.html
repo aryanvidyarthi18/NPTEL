@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>INDIAN MEAL RECOMMENDATION</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
+    header { background: #007BFF; color: white; padding: 15px; text-align: center; }
+    nav { background: #0056b3; padding: 10px; display: flex; justify-content: center; }
+    nav a { color: white; text-decoration: none; margin: 0 15px; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    main { max-width: 1100px; margin: 20px auto; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    h2 { color: #007BFF; border-bottom: 2px solid #eee; padding-bottom: 4px; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    select, input[type=number], input[type=range], input[type=text], input[type=date] { width: 100%; padding: 6px; margin-top: 4px; }
+    input[type=range] { width: 80%; }
+    .slider-value { font-weight: bold; margin-left: 8px; }
+    .plan-box { margin-top: 20px; background: #fdfdfd; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+    th { background: #f1f1f1; }
+    .btn { padding: 8px 14px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    .btn:hover { background: #218838; }
+    .btn-danger { background: #dc3545; }
+    .btn-danger:hover { background: #b02a37; }
+</style>
+</head>
+<body>
+<header>
+    <h1>INDIAN MEAL RECOMMENDATION</h1>
+</header>
+<nav>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('compare_algorithms_route') }}">Algorithm Comparison</a>
+        <a href="{{ url_for('saved_plans_page') }}">Saved Plans</a>
+        <a href="{{ url_for('genetic_visualization') }}">Genetic Algorithm Demo</a>
+</nav>
+
+<main>
+{% if error_message %}
+<div style="background:#fff3cd;color:#856404;border:1px solid #ffeeba;padding:10px;border-radius:4px;margin-bottom:12px;">
+  {{ error_message }}
+  {% if targets %}
+  {% else %}
+  {% endif %}
+  </div>
+{% endif %}
+<form method="POST">
+    <input type="hidden" id="form_action" name="action" value="">
+
+    <!-- PERSONAL INFO -->
+    <h2>Personal Info</h2>
+    <label>Age</label>
+    <input type="number" name="age" value="{{ user_inputs.age if user_inputs }}">
+    <label>Gender</label>
+    <select name="gender" id="gender">
+        <option value="">Select</option>
+        <option value="male" {% if user_inputs and user_inputs.gender=='male' %}selected{% endif %}>Male</option>
+        <option value="female" {% if user_inputs and user_inputs.gender=='female' %}selected{% endif %}>Female</option>
+    </select>
+    <div id="pregnancy-fields" style="display:none;">
+        <label>Pregnancy</label>
+        <select name="pregnancy">
+            <option value="">None</option>
+            <option value="2nd">2nd Trimester</option>
+            <option value="3rd">3rd Trimester</option>
+        </select>
+        <label>Lactating</label>
+        <select name="lactating">
+            <option value="">None</option>
+            <option value="0-6">0-6 Months</option>
+            <option value="7-12">7-12 Months</option>
+        </select>
+    </div>
+    <label>Height (cm)</label>
+    <input type="number" step="0.1" name="height" value="{{ user_inputs.height if user_inputs }}">
+    <label>Weight (kg)</label>
+    <input type="number" step="0.1" name="weight" value="{{ user_inputs.weight if user_inputs }}">
+    <label>Activity</label>
+    <select name="activity">
+        <option value="">Select</option>
+        <option value="sedentary" {% if user_inputs and user_inputs.activity=='sedentary' %}selected{% endif %}>Sedentary</option>
+        <option value="moderate" {% if user_inputs and user_inputs.activity=='moderate' %}selected{% endif %}>Moderate</option>
+        <option value="heavy" {% if user_inputs and user_inputs.activity=='heavy' %}selected{% endif %}>Heavy</option>
+    </select>
+    <label>Cuisine</label>
+    <select name="region">
+        <option value="both" {% if user_inputs and user_inputs.region=='both' %}selected{% endif %}>Both</option>
+        <option value="north" {% if user_inputs and user_inputs.region=='north' %}selected{% endif %}>North</option>
+        <option value="south" {% if user_inputs and user_inputs.region=='south' %}selected{% endif %}>South</option>
+    </select>
+    <label>Preference</label>
+    <select name="preference">
+        <option value="veg" {% if user_inputs and user_inputs.preference=='veg' %}selected{% endif %}>Veg</option>
+        <option value="both" {% if user_inputs and user_inputs.preference=='both' %}selected{% endif %}>Veg & Non-Veg</option>
+    </select>
+
+    <!-- DAILY CALORIE TARGET -->
+    <h2>Daily Calorie Target</h2>
+    <label>Daily Calories (kcal)</label>
+    <input type="number" name="daily_calories" value="{{ user_inputs.daily_calories if user_inputs and user_inputs.daily_calories else '' }}" placeholder="e.g., 2000">
+    <small style="color: #666;">Leave empty to auto-calculate based on your profile</small>
+
+    <!-- MEAL SPLIT -->
+    <h2>Meal Calorie Split %</h2>
+    <label>Breakfast: <span id="val-breakfast">{{ breakfast_pct if breakfast_pct else 25 }}</span>%</label>
+    <input type="range" min="20" max="60" name="breakfast_pct" id="breakfast_pct" value="{{ breakfast_pct if breakfast_pct else 25 }}">
+    <label>Lunch: <span id="val-lunch">{{ lunch_pct if lunch_pct else 40 }}</span>%</label>
+    <input type="range" min="20" max="60" name="lunch_pct" id="lunch_pct" value="{{ lunch_pct if lunch_pct else 40 }}">
+    <label>Dinner: <span id="val-dinner">{{ dinner_pct if dinner_pct else 35 }}</span>%</label>
+    <input type="range" min="20" max="60" name="dinner_pct" id="dinner_pct" value="{{ dinner_pct if dinner_pct else 35 }}">
+
+    <!-- MACRO FOCUS -->
+    <h2>Macro Focus</h2>
+    <select name="macro_focus">
+        <option value="protein" {% if macro_focus=="protein" %}selected{% endif %}>Protein-rich</option>
+        <option value="carbs" {% if macro_focus=="carbs" %}selected{% endif %}>Carbs-rich</option>
+        <option value="fat" {% if macro_focus=="fat" %}selected{% endif %}>Fat-rich</option>
+    </select>
+
+    <!-- PLAN TYPE -->
+    <h2>Plan Type</h2>
+    <select name="plan_type">
+        <option value="single" {% if plan_type=="single" %}selected{% endif %}>Single Day Plan</option>
+        <option value="weekly" {% if plan_type=="weekly" %}selected{% endif %}>Weekly Plan (7 Days)</option>
+    </select>
+
+
+
+
+	{% if targets %}
+	<!-- TARGETS DISPLAY -->
+	<div class="plan-box">
+		<h3>Your Daily Nutritional Targets</h3>
+		{% if targets.Calculated_TDEE and targets.Calculated_TDEE != targets.TDEE %}
+		<p style="color: #666; font-size: 12px; margin-bottom: 10px;">
+			<strong>Note:</strong> Using your custom calorie target of {{ targets.TDEE }} kcal 
+			(instead of calculated {{ targets.Calculated_TDEE }} kcal)
+		</p>
+		{% endif %}
+		<table>
+			<thead><tr><th>TDEE (kcal)</th><th>Protein (g)</th><th>Carbs (g)</th><th>Fat (g)</th></tr></thead>
+			<tbody>
+				<tr>
+					<td>{{ targets.TDEE }}</td>
+					<td>{{ targets.Protein }}</td>
+					<td>{{ targets.Carbs }}</td>
+					<td>{{ targets.Fat }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+
+    {% if plan %}
+    <!-- PLAN DISPLAY -->
+    <div class="plan-box">
+        <div style="text-align:right;font-weight:bold;">
+            {% if plan_type == "weekly" %}
+                Day {{ plan_index + 1 }} of {{ total_plans }}
+            {% else %}
+                Plan {{ plan_index + 1 }} of {{ total_plans }}
+            {% endif %}
+        </div>
+        <ul>
+            <li><b>Breakfast:</b> {{ plan.meals.breakfast.label if plan and plan.meals and plan.meals.breakfast else 'N/A' }}</li>
+            <li><b>Lunch:</b> {{ plan.meals.lunch.label if plan and plan.meals and plan.meals.lunch else 'N/A' }}</li>
+            <li><b>Dinner:</b> {{ plan.meals.dinner.label if plan and plan.meals and plan.meals.dinner else 'N/A' }}</li>
+        </ul>
+        
+        <!-- Plan Summary -->
+        {% if total_plans > 1 %}
+        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+            <h4 style="margin: 0 0 10px 0; color: #007BFF;">Available Plans Summary:</h4>
+            <div style="font-size: 12px; color: #666;">
+                {% if plan_type == "weekly" %}
+                    <strong>Weekly Plan:</strong> {{ total_plans }} days of unique meals<br>
+                    <strong>Current Day:</strong> {{ plan_index + 1 }} of {{ total_plans }}<br>
+                    <strong>Navigation:</strong> Use Previous/Next buttons to view different days
+                {% else %}
+                    <strong>Single Day Plans:</strong> {{ total_plans }} different meal combinations<br>
+                    <strong>Current Plan:</strong> {{ plan_index + 1 }} of {{ total_plans }}<br>
+                    <strong>Navigation:</strong> Use Previous/Next buttons to view different combinations
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if meal_macros %}
+        <table>
+            <thead><tr><th>Meal</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Calorie % (actual / target)</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>Breakfast</td>
+                    <td>{{ meal_macros.breakfast.Calories|round(1) if meal_macros.breakfast else 'N/A' }}</td>
+                    <td>{{ meal_macros.breakfast.Protein|round(1) if meal_macros.breakfast else 'N/A' }}</td>
+                    <td>{{ meal_macros.breakfast.Carbs|round(1) if meal_macros.breakfast else 'N/A' }}</td>
+                    <td>{{ meal_macros.breakfast.Fat|round(1) if meal_macros.breakfast else 'N/A' }}</td>
+                    <td>
+                        {% if meal_calorie_percentages %}
+                            {{ meal_calorie_percentages.breakfast.actual }}% / {{ meal_calorie_percentages.breakfast.target }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Lunch</td>
+                    <td>{{ meal_macros.lunch.Calories|round(1) if meal_macros.lunch else 'N/A' }}</td>
+                    <td>{{ meal_macros.lunch.Protein|round(1) if meal_macros.lunch else 'N/A' }}</td>
+                    <td>{{ meal_macros.lunch.Carbs|round(1) if meal_macros.lunch else 'N/A' }}</td>
+                    <td>{{ meal_macros.lunch.Fat|round(1) if meal_macros.lunch else 'N/A' }}</td>
+                    <td>
+                        {% if meal_calorie_percentages %}
+                            {{ meal_calorie_percentages.lunch.actual }}% / {{ meal_calorie_percentages.lunch.target }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Dinner</td>
+                    <td>{{ meal_macros.dinner.Calories|round(1) if meal_macros.dinner else 'N/A' }}</td>
+                    <td>{{ meal_macros.dinner.Protein|round(1) if meal_macros.dinner else 'N/A' }}</td>
+                    <td>{{ meal_macros.dinner.Carbs|round(1) if meal_macros.dinner else 'N/A' }}</td>
+                    <td>{{ meal_macros.dinner.Fat|round(1) if meal_macros.dinner else 'N/A' }}</td>
+                    <td>
+                        {% if meal_calorie_percentages %}
+                            {{ meal_calorie_percentages.dinner.actual }}% / {{ meal_calorie_percentages.dinner.target }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Total</th>
+                    <th>{{ meal_macros.total.Calories|round(1) if meal_macros.total else 'N/A' }}</th>
+                    <th>{{ meal_macros.total.Protein|round(1) if meal_macros.total else 'N/A' }}</th>
+                    <th>{{ meal_macros.total.Carbs|round(1) if meal_macros.total else 'N/A' }}</th>
+                    <th>{{ meal_macros.total.Fat|round(1) if meal_macros.total else 'N/A' }}</th>
+                    <th>{% if meal_calorie_percentages %}100% / 100%{% else %}N/A{% endif %}</th>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p>No meal plan data available.</p>
+        {% endif %}
+
+        <!-- SAVE PLAN SECTION -->
+        {% if plan and user_inputs %}
+        <div style="margin-top: 15px; padding: 10px; background: #e8f4fd; border-radius: 4px; border-left: 4px solid #007BFF;">
+            <h4 style="margin: 0 0 10px 0; color: #007BFF;">Save This Plan</h4>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="date" id="save_date" value="{{ current_date }}" style="width: auto; padding: 6px;">
+                <button type="button" class="btn" onclick="saveMealPlan()" style="background: #28a745;">
+                    💾 Save Plan
+                </button>
+                <button type="button" class="btn" onclick="loadSavedPlans()" style="background: #17a2b8;">
+                    📅 View Saved Plans
+                </button>
+            </div>
+            <div id="save_message" style="margin-top: 8px; font-size: 12px;"></div>
+        </div>
+        
+        <!-- Data for JavaScript -->
+        <script type="application/json" id="plan-data">
+        {
+            "plan": {{ plan | tojson }},
+            "user_inputs": {{ user_inputs | tojson }},
+            "meal_split": {
+                "breakfast": {{ breakfast_pct }},
+                "lunch": {{ lunch_pct }},
+                "dinner": {{ dinner_pct }}
+            },
+            "macro_focus": "{{ macro_focus }}"
+        }
+        </script>
+        {% endif %}
+
+        
+
+        
+
+        
+    </div>
+    {% endif %}
+
+    <!-- SHOW ALL PLANS SUMMARY -->
+    {% if show_all_plans and all_plans %}
+    <div class="plan-box">
+        <h3>All Available Plans Summary</h3>
+        <p><strong>Total Plans Available:</strong> {{ total_plans }}</p>
+        <p><strong>Current Plan:</strong> {{ plan_index + 1 }}</p>
+        <p>Use Previous/Next buttons to navigate through all available plans.</p>
+    </div>
+    {% endif %}
+
+    {% if user_inputs %}
+      {% for key, value in user_inputs.items() %}
+          <input type="hidden" name="{{ key }}" value="{{ value }}">
+      {% endfor %}
+    {% endif %}
+    <input type="hidden" name="plan_index" value="{{ plan_index }}">
+    <input type="hidden" name="macro_focus" value="{{ macro_focus }}">
+
+    <br><br>
+    <div style="margin-bottom:8px;font-weight:bold;">
+        {% if plan_type == "weekly" %}
+            Total days available: {{ total_plans }}
+        {% else %}
+            Total plans available: {{ total_plans }}
+        {% endif %}
+    </div>
+    
+    <button class="btn" type="submit" onclick="setAction('generate')">Generate</button>
+    
+    {% if total_plans > 1 %}
+        <button class="btn" type="submit" onclick="setAction('previous')">
+            {% if plan_type == "weekly" %}Previous Day{% else %}Previous Plan{% endif %}
+        </button>
+        <button class="btn" type="submit" onclick="setAction('next')">
+            {% if plan_type == "weekly" %}Next Day{% else %}Next Plan{% endif %}
+        </button>
+        <button class="btn" type="submit" onclick="setAction('show_all')">Show All Plans</button>
+    {% endif %}
+    
+    <button class="btn btn-danger" type="submit" onclick="setAction('restart')">Restart</button>
+</form>
+
+        
+</main>
+
+<script>
+function setAction(act) {
+    document.getElementById('form_action').value = act;
+    if (act === 'next' || act === 'restart') {
+        ["age","gender","height","weight","activity","region","preference"].forEach(name => {
+            const el = document.getElementsByName(name)[0];
+            if (el) el.removeAttribute("required");
+        });
+    }
+}
+// Pregnancy fields toggle
+function togglePregnancyFields() {
+    const genderElement = document.getElementById("gender");
+    const pregnancyFields = document.getElementById("pregnancy-fields");
+    if (genderElement && pregnancyFields) {
+        pregnancyFields.style.display = genderElement.value === "female" ? "block" : "none";
+    }
+}
+
+// Add event listener when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const genderElement = document.getElementById("gender");
+    if (genderElement) {
+        genderElement.addEventListener("change", togglePregnancyFields);
+        togglePregnancyFields();
+    }
+});
+
+
+
+
+
+// Auto-balance sliders
+function rebalance(changed){
+    const ids = ["breakfast_pct","lunch_pct","dinner_pct"];
+    const changedIdx = ids.indexOf(changed);
+    const changedEl = document.getElementById(changed);
+    // Ensure changed value respects bounds
+    let changedVal = parseInt(changedEl.value);
+    if (isNaN(changedVal)) changedVal = 20;
+    changedVal = Math.max(20, Math.min(changedVal, 60));
+    changedEl.value = changedVal;
+
+    const remaining = 100 - changedVal;
+    const others = ids.filter(id => id !== changed);
+
+    // Distribute remaining to the other two while respecting [20, 60]
+    let a = Math.round(remaining / 2);
+    a = Math.max(20, Math.min(a, 60));
+    let b = remaining - a;
+    if (b < 20) {
+        b = 20; a = remaining - b;
+    } else if (b > 60) {
+        b = 60; a = remaining - b;
+    }
+    // Final clamp on a (and adjust b to keep sum 100)
+    if (a < 20) { a = 20; b = remaining - a; }
+    if (a > 60) { a = 60; b = remaining - a; }
+
+    document.getElementById(others[0]).value = a;
+    document.getElementById(others[1]).value = b;
+
+    document.getElementById("val-breakfast").textContent = document.getElementById("breakfast_pct").value;
+    document.getElementById("val-lunch").textContent = document.getElementById("lunch_pct").value;
+    document.getElementById("val-dinner").textContent = document.getElementById("dinner_pct").value;
+}
+
+// Add slider event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    ["breakfast_pct","lunch_pct","dinner_pct"].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener("input", () => rebalance(id));
+        }
+    });
+});
+
+// Save meal plan functionality
+function saveMealPlan() {
+    const saveDate = document.getElementById('save_date').value;
+    const saveMessage = document.getElementById('save_message');
+    
+    if (!saveDate) {
+        saveMessage.innerHTML = '<span style="color: red;">Please select a date</span>';
+        return;
+    }
+    
+    // Get data from JSON script tag
+    const dataScript = document.getElementById('plan-data');
+    if (!dataScript) {
+        saveMessage.innerHTML = '<span style="color: red;">No plan data available</span>';
+        return;
+    }
+    
+    const data = JSON.parse(dataScript.textContent);
+    const planData = {
+        date: saveDate,
+        plan: data.plan,
+        user_inputs: data.user_inputs,
+        meal_split: data.meal_split,
+        macro_focus: data.macro_focus
+    };
+    
+    fetch('/save_plan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(planData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            saveMessage.innerHTML = '<span style="color: green;">✅ ' + data.message + '</span>';
+        } else {
+            saveMessage.innerHTML = '<span style="color: red;">❌ ' + data.message + '</span>';
+        }
+    })
+    .catch(error => {
+        saveMessage.innerHTML = '<span style="color: red;">❌ Error: ' + error.message + '</span>';
+    });
+}
+
+function loadSavedPlans() {
+    window.open('/saved_plans', '_blank');
+}
+</script>
+</body>
+</html>

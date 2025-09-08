@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Saved Meal Plans - INDIAN MEAL RECOMMENDATION</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
+    header { background: #007BFF; color: white; padding: 15px; text-align: center; }
+    nav { background: #0056b3; padding: 10px; display: flex; justify-content: center; }
+    nav a { color: white; text-decoration: none; margin: 0 15px; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    main { max-width: 1100px; margin: 20px auto; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    h2 { color: #007BFF; border-bottom: 2px solid #eee; padding-bottom: 4px; }
+    .plan-item { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fdfdfd; }
+    .plan-date { font-weight: bold; color: #007BFF; font-size: 18px; margin-bottom: 10px; }
+    .plan-details { margin: 10px 0; }
+    .btn { padding: 8px 14px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; text-decoration: none; display: inline-block; }
+    .btn:hover { background: #218838; }
+    .btn-info { background: #17a2b8; }
+    .btn-info:hover { background: #138496; }
+    .btn-danger { background: #dc3545; }
+    .btn-danger:hover { background: #b02a37; }
+    .no-plans { text-align: center; color: #666; font-style: italic; margin: 40px 0; }
+    .loading { text-align: center; color: #666; }
+</style>
+</head>
+<body>
+<header>
+    <h1>Saved Meal Plans</h1>
+</header>
+<nav>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('compare_algorithms_route') }}">Algorithm Comparison</a>
+</nav>
+
+<main>
+    <h2>Your Saved Meal Plans</h2>
+    
+    <div id="plans-container">
+        <div class="loading">Loading saved plans...</div>
+    </div>
+</main>
+
+<script>
+// Load saved plans when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadSavedPlans();
+});
+
+function loadSavedPlans() {
+    fetch('/saved_dates')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPlans(data.dates);
+        } else {
+            document.getElementById('plans-container').innerHTML = 
+                '<div class="no-plans">❌ Error loading plans: ' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        document.getElementById('plans-container').innerHTML = 
+            '<div class="no-plans">❌ Error loading plans: ' + error.message + '</div>';
+    });
+}
+
+function displayPlans(dates) {
+    const container = document.getElementById('plans-container');
+    
+    if (dates.length === 0) {
+        container.innerHTML = '<div class="no-plans">📅 No saved meal plans found. Create and save some plans first!</div>';
+        return;
+    }
+    
+    let html = '';
+    dates.forEach(date => {
+        html += `
+            <div class="plan-item" id="plan-${date}">
+                <div class="plan-date">📅 ${formatDate(date)}</div>
+                <div class="plan-details">
+                    <div class="loading">Loading plan details...</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    
+    // Load details for each plan
+    dates.forEach(date => {
+        loadPlanDetails(date);
+    });
+}
+
+function loadPlanDetails(date) {
+    fetch(`/load_plan/${date}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayPlanDetails(date, data);
+        } else {
+            document.querySelector(`#plan-${date} .plan-details`).innerHTML = 
+                '<div style="color: red;">❌ Error loading plan: ' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        document.querySelector(`#plan-${date} .plan-details`).innerHTML = 
+            '<div style="color: red;">❌ Error loading plan: ' + error.message + '</div>';
+    });
+}
+
+function displayPlanDetails(date, data) {
+    const plan = data.plan;
+    const userInputs = data.user_inputs;
+    const mealSplit = data.meal_split;
+    const macroFocus = data.macro_focus;
+    const savedAt = new Date(data.saved_at).toLocaleString();
+    
+    const detailsHtml = `
+        <div style="margin-bottom: 10px;">
+            <strong>Saved:</strong> ${savedAt} | 
+            <strong>Macro Focus:</strong> ${macroFocus} | 
+            <strong>Meal Split:</strong> ${mealSplit.breakfast}% / ${mealSplit.lunch}% / ${mealSplit.dinner}%
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <strong>Breakfast:</strong> ${plan.meals.breakfast ? plan.meals.breakfast.label : 'N/A'}<br>
+            <strong>Lunch:</strong> ${plan.meals.lunch ? plan.meals.lunch.label : 'N/A'}<br>
+            <strong>Dinner:</strong> ${plan.meals.dinner ? plan.meals.dinner.label : 'N/A'}
+        </div>
+        
+        ${plan.total_macros ? `
+        <div style="margin: 10px 0; font-size: 12px; color: #666;">
+            <strong>Total:</strong> ${Math.round(plan.total_macros.Calories)} cal | 
+            ${Math.round(plan.total_macros.Protein)}g protein | 
+            ${Math.round(plan.total_macros.Carbs)}g carbs | 
+            ${Math.round(plan.total_macros.Fat)}g fat
+        </div>
+        ` : ''}
+        
+        <div style="margin-top: 10px;">
+            <button class="btn btn-info" onclick="useThisPlan('${date}')">Use This Plan</button>
+            <button class="btn btn-danger" onclick="deletePlan('${date}')">Delete</button>
+        </div>
+    `;
+    
+    document.querySelector(`#plan-${date} .plan-details`).innerHTML = detailsHtml;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function useThisPlan(date) {
+    // Redirect to home page with the selected date
+    window.location.href = `/?load_date=${date}`;
+}
+
+function deletePlan(date) {
+    if (confirm(`Are you sure you want to delete the meal plan for ${formatDate(date)}?`)) {
+        // For now, just show a message. In a real app, you'd implement delete functionality
+        alert('Delete functionality not implemented yet. You can manually delete the saved_meal_plans.json file.');
+    }
+}
+</script>
+</body>
+</html>
+
